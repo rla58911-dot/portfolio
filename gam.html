@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Cute Tetris</title>
+
+<style>
+body{
+    background:#ffeef6;
+    font-family: 'Comic Sans MS', cursive;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+
+.game-container{
+    text-align:center;
+}
+
+h1{
+    color:#ff6fa5;
+}
+
+canvas{
+    background:#fff;
+    border-radius:15px;
+    box-shadow:0 0 20px rgba(0,0,0,0.1);
+}
+
+.score{
+    margin-top:10px;
+    font-size:20px;
+    color:#555;
+}
+
+button{
+    margin-top:10px;
+    padding:10px 20px;
+    border:none;
+    border-radius:10px;
+    background:#ff9ac7;
+    color:white;
+    font-size:16px;
+    cursor:pointer;
+}
+</style>
+
+</head>
+<body>
+
+<div class="game-container">
+<h1>🐰 Cute Tetris 🧸</h1>
+<canvas id="game" width="240" height="400"></canvas>
+<div class="score">Score : <span id="score">0</span></div>
+<button onclick="startGame()">Start</button>
+</div>
+
+<script>
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const ROW = 20;
+const COL = 12;
+const SIZE = 20;
+
+let board = [];
+let score = 0;
+
+const colors = [
+null,
+"#ffb3ba",
+"#ffdfba",
+"#ffffba",
+"#baffc9",
+"#bae1ff",
+"#d5baff",
+"#ffc6ff"
+];
+
+const pieces = [
+[],
+[[1,1,1,1]],
+[[2,2],[2,2]],
+[[0,3,0],[3,3,3]],
+[[4,4,0],[0,4,4]],
+[[0,5,5],[5,5,0]],
+[[6,0,0],[6,6,6]]
+];
+
+function initBoard(){
+    board=[];
+    for(let r=0;r<ROW;r++){
+        board[r]=[];
+        for(let c=0;c<COL;c++){
+            board[r][c]=0;
+        }
+    }
+}
+
+function drawCell(x,y,color){
+    ctx.fillStyle=color;
+    ctx.fillRect(x*SIZE,y*SIZE,SIZE,SIZE);
+
+    ctx.strokeStyle="#fff";
+    ctx.strokeRect(x*SIZE,y*SIZE,SIZE,SIZE);
+}
+
+function drawBoard(){
+    for(let r=0;r<ROW;r++){
+        for(let c=0;c<COL;c++){
+            drawCell(c,r,colors[board[r][c]]);
+        }
+    }
+}
+
+let current;
+
+function newPiece(){
+    const rand = Math.floor(Math.random()*(pieces.length-1))+1;
+
+    current={
+        shape:pieces[rand],
+        color:rand,
+        x:4,
+        y:0
+    }
+}
+
+function drawPiece(){
+    current.shape.forEach((row,y)=>{
+        row.forEach((val,x)=>{
+            if(val){
+                drawCell(current.x+x,current.y+y,colors[current.color]);
+            }
+        })
+    })
+}
+
+function collide(dx,dy,shape=current.shape){
+    for(let y=0;y<shape.length;y++){
+        for(let x=0;x<shape[y].length;x++){
+
+            if(!shape[y][x]) continue;
+
+            let newX=current.x+x+dx;
+            let newY=current.y+y+dy;
+
+            if(newX<0 || newX>=COL || newY>=ROW) return true;
+            if(board[newY] && board[newY][newX]) return true;
+
+        }
+    }
+    return false;
+}
+
+function merge(){
+    current.shape.forEach((row,y)=>{
+        row.forEach((val,x)=>{
+            if(val){
+                board[current.y+y][current.x+x]=current.color;
+            }
+        })
+    })
+}
+
+function rotate(){
+    const newShape=current.shape[0].map((_,i)=>
+        current.shape.map(row=>row[i]).reverse()
+    );
+
+    if(!collide(0,0,newShape)){
+        current.shape=newShape;
+    }
+}
+
+function clearLines(){
+
+    for(let r=ROW-1;r>=0;r--){
+
+        if(board[r].every(v=>v>0)){
+            board.splice(r,1);
+            board.unshift(new Array(COL).fill(0));
+            score+=10;
+            document.getElementById("score").innerText=score;
+        }
+
+    }
+
+}
+
+function drop(){
+
+    if(!collide(0,1)){
+        current.y++;
+    }else{
+        merge();
+        clearLines();
+        newPiece();
+
+        if(collide(0,0)){
+            alert("Game Over 🧸");
+            initBoard();
+            score=0;
+        }
+
+    }
+
+}
+
+document.addEventListener("keydown",e=>{
+
+    if(e.key==="ArrowLeft"){
+        if(!collide(-1,0)) current.x--;
+    }
+
+    if(e.key==="ArrowRight"){
+        if(!collide(1,0)) current.x++;
+    }
+
+    if(e.key==="ArrowDown"){
+        drop();
+    }
+
+    if(e.key==="ArrowUp"){
+        rotate();
+    }
+
+});
+
+function gameLoop(){
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    drawBoard();
+    drawPiece();
+
+}
+
+function startGame(){
+
+    initBoard();
+    newPiece();
+
+    setInterval(()=>{
+        drop();
+    },600);
+
+    setInterval(gameLoop,30);
+}
+
+</script>
+
+</body>
+</html>
